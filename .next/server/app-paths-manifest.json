@@ -1,7 +1,3 @@
 {
-  "/page": "app/page.js",
-  "/auth/login/page": "app/auth/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/jobs/page": "app/dashboard/jobs/page.js",
-  "/dashboard/notifications/page": "app/dashboard/notifications/page.js"
+  "/auth/login/page": "app/auth/login/page.js"
 }

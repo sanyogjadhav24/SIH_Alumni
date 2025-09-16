@@ -1,24 +1,47 @@
 'use client'
-
 import Link from 'next/link'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
+import { useRouter } from 'next/navigation'
+import { Button } from '../../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card'
+import { Input } from '../../../components/ui/input'
+import { Label } from '../../../components/ui/label'
+import { Separator } from '../../../components/ui/separator'
+import { useAuth } from '../../hooks/useAuth'
 import { GraduationCap, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { login } = useAuth() // use login from AuthContext
+
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Login attempt:', formData)
+    setLoading(true)
+    setError(null)
+
+    try {
+      const data = await login(formData.email, formData.password)
+
+      if (data && data.user) {
+        // Successful login, redirect to dashboard
+        router.push('/dashboard')
+      } else {
+        // If backend returns error
+        throw new Error(data.message || 'Invalid credentials')
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -40,6 +63,7 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
@@ -56,6 +80,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -79,8 +104,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-gradient-primary">
-                Sign In
+              {/* Error Message */}
+              {error && <p className="text-sm text-red-500">{error}</p>}
+
+              {/* Submit */}
+              <Button type="submit" className="w-full bg-gradient-primary" disabled={loading}>
+                {loading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
 
