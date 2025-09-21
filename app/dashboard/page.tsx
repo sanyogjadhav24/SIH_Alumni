@@ -1,26 +1,36 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import {
-  Heart,
-  MessageCircle,
-  Share,
-  MoreHorizontal,
-  Image as ImageIcon,
-  Calendar,
-  MapPin,
-  Users,
-  Smile,
-} from "lucide-react";
+'use client'
+import { useAuth } from '../hooks/useAuth'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { Card, CardContent } from "../../components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
+import { Badge } from "../../components/ui/badge"
+import { Heart, MessageCircle, Share, MoreHorizontal, Image as ImageIcon, Calendar, MapPin, Users, Smile } from "lucide-react"
+
 
 export default function DashboardPage() {
+  const { user, loading, logout } = useAuth();
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth/login')
+    }
+  }, [loading, user, router])
+
+  if (loading || !user) return null; 
+
+  if (loading) {
+    return <div className="p-6 text-center">Loading...</div>
+  }
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Welcome Banner */}
       <Card className="bg-gradient-to-r from-primary to-primary/90 text-white border-0">
         <CardContent className="p-8">
           <h1 className="text-3xl font-bold mb-2">Welcome to AlmaConnect</h1>
+          <h1 className="text-3xl font-bold mb-2">Welcome {user?.firstName} 👋</h1>
           <p className="text-primary-foreground/80 text-lg mb-4">
             Your professional alumni network where stories inspire careers and
             connections create opportunities.
@@ -40,7 +50,7 @@ export default function DashboardPage() {
           <div className="flex items-start gap-3">
             <Avatar className="h-10 w-10">
               <AvatarFallback className="bg-primary text-white">
-                S
+                {user?.firstName[0]}{user?.lastName[0]}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -79,17 +89,17 @@ export default function DashboardPage() {
           <div className="flex items-start gap-3 mb-4">
             <Avatar className="h-12 w-12">
               <AvatarFallback className="bg-primary text-white">
-                S
+                {user.firstName[0]}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Sakshi Sonawane
+                   {user?.firstName} {user?.lastName}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Senior Software Engineer at Google
+                    {user?.role} at {user?.universityName.toUpperCase()}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     2 hours ago

@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Button } from "../../components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
+import { Badge } from "../../components/ui/badge";
+import { Input } from "../../components/ui/input";
+import { useAuth } from "../hooks/useAuth";
+import { AuthProvider } from "../hooks/useAuth";
+import ProtectedRoute from "../../components/ProtectedRoute";
 import {
   Home,
   Users,
@@ -22,6 +25,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import AvatarDropdown from "@/components/ui/AvtarDropDown";
 
 const navigation = [
   { name: "Feed", href: "/dashboard", icon: Home },
@@ -51,8 +55,10 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
 
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Top Stats Bar */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4">
@@ -131,11 +137,7 @@ export default function DashboardLayout({
               ⚙️
             </Button>
             <ThemeToggle />
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-white">
-                SJ
-              </AvatarFallback>
-            </Avatar>
+            <AvatarDropdown/>
           </div>
         </div>
       </header>
@@ -153,18 +155,21 @@ export default function DashboardLayout({
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
                 <AvatarFallback className="bg-primary text-white">
-                  SJ
+                {user?.profileUrl === ""
+                ? `${user?.firstName[0].toUpperCase()}${user?.lastName[0].toUpperCase()}`
+                : <img src={user?.profileUrl}></img>}
+
                 </AvatarFallback>
               </Avatar>
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">
-                  Sakshi Sonawane
+                  {user?.firstName} {user?.lastName} {"("+user?.role+")"}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Software Engineer at...
+                  {user?.universityName.toUpperCase()}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Class of 2020
+                  Class of {user?.graduationYear}
                 </p>
               </div>
             </div>
@@ -269,5 +274,6 @@ export default function DashboardLayout({
         />
       )}
     </div>
+    </ProtectedRoute>
   );
 }

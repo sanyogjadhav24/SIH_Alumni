@@ -1,9 +1,13 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "../../hooks/useAuth";
+import { useRouter } from "next/navigation";
 import {
   MessageCircle,
   Edit,
@@ -14,9 +18,14 @@ import {
   Phone,
   Globe,
   Star,
+  User,
 } from "lucide-react";
 
 export default function ProfilePage() {
+
+  const {user} = useAuth();
+  const router = useRouter();
+
   const skills = [
     { name: "React", level: 95 },
     { name: "TypeScript", level: 90 },
@@ -56,13 +65,18 @@ export default function ProfilePage() {
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24 border-4 border-white">
                 <AvatarFallback className="bg-white text-primary text-2xl font-bold">
-                  SJ
+                {user?.profileUrl === ""
+                ? `${user?.firstName[0].toUpperCase()}${user?.lastName[0].toUpperCase()}`
+                : <img src={user?.profileUrl}></img>}
+
+                  {/* {} */}
+                  
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-3xl font-bold mb-2">Sakshi Sonawane</h1>
+                <h1 className="text-3xl font-bold mb-2">{user?.firstName} {user?.lastName} {"("+user?.role+")"}</h1>
                 <p className="text-xl text-primary-foreground/80 mb-2">
-                  Senior Software Engineer
+                  {user?.universityName.toUpperCase()}
                 </p>
                 <div className="flex items-center gap-4 text-primary-foreground/80 mb-4">
                   <div className="flex items-center gap-1">
@@ -75,7 +89,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    Class of 2020
+                    Class of {user?.graduationYear}
                   </div>
                 </div>
               </div>
@@ -87,7 +101,8 @@ export default function ProfilePage() {
               </Button>
               <Button
                 variant="outline"
-                className="gap-2 border-white text-white hover:bg-white hover:text-primary"
+                className="gap-2 border-white text-black hover:bg-white hover:text-primary"
+                onClick={()=>{router.push("/dashboard/profile/edit");}}
               >
                 <Edit className="h-4 w-4" />
                 Edit Profile
@@ -115,15 +130,15 @@ export default function ProfilePage() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-gray-400" />
-                  <span> .sakshi sonawane@gmail.com</span>
+                  <span> {user?.email}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-gray-400" />
-                  <span>+1(555) 123-4567</span>
+                  <span>+91 {user?.contactNumber}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-gray-400" />
-                  <span>www. sakshi sonawane.dev</span>
+                  <span>www. {user?.firstName}.dev</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
