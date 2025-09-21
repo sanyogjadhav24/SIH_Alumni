@@ -46,7 +46,7 @@ function AuthProvider({ children }) {
     return data;
   };
 
-  // signup (fixed!)
+  // signup 
   const signup = async (formData) => {
     try {
       // remove old token

@@ -17,19 +17,10 @@ cloudinary.config({
 });
 
 //  Multer Config 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/"); 
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Register Route 
-
+// Register Route
 router.post(
   "/register",
   upload.fields([
@@ -53,36 +44,46 @@ router.post(
       let documentLink = "";
       let profileLink = "";
 
-      // Document 
+      // Document - mandatory
       if (req.files && req.files.documentFile) {
-        const docPath = req.files.documentFile[0].path;
-        const uploadedDoc = await cloudinary.uploader.upload(docPath, {
-          folder: "alumniNet/documents",
+        const uploadedDoc = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "alumniNet/documents" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          stream.end(req.files.documentFile[0].buffer);
         });
         documentLink = uploadedDoc.secure_url;
-        fs.unlinkSync(docPath);
       } else {
         return res.status(400).json({ message: "Document file is required" });
       }
 
-      // Profile (optional)
+      // Profile - optional
       if (req.files && req.files.profileUrl) {
-        const profilePath = req.files.profileUrl[0].path;
-        const uploadedProfile = await cloudinary.uploader.upload(profilePath, {
-          folder: "alumniNet/profiles",
+        const uploadedProfile = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "alumniNet/profiles" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          stream.end(req.files.profileUrl[0].buffer);
         });
         profileLink = uploadedProfile.secure_url;
-        fs.unlinkSync(profilePath);
       }
 
-      //  Check User Exists 
+      // Check if user exists
       const exists = await User.findOne({ email });
       if (exists) return res.status(400).json({ message: "User already exists" });
 
-      // ================= Hash Password =================
+      // Hash Password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      //  Save User
+      // Save User
       const newUser = await User.create({
         firstName,
         lastName,
@@ -97,7 +98,7 @@ router.post(
         major,
       });
 
-      //= JWT Token 
+      // JWT Token
       const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
         expiresIn: "7d",
       });
@@ -124,6 +125,7 @@ router.post(
     }
   }
 );
+
 
 //  Login Route 
 router.post("/login", async (req, res) => {
@@ -257,7 +259,7 @@ router.put(
 
       await user.save();
 
-      // ========== Return updated user ==========
+      //  Return updated user 
       res.json({
         message: "Profile updated successfully",
         user: {

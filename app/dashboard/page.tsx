@@ -1,6 +1,6 @@
 'use client'
 import { useAuth } from '../hooks/useAuth'
-import { useRouter } from 'next/navigation'
+import { useRouter,useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { Card, CardContent } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
@@ -12,6 +12,16 @@ import { Heart, MessageCircle, Share, MoreHorizontal, Image as ImageIcon, Calend
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter()
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      localStorage.setItem("token", token);  // Save token
+      router.replace("/dashboard");          // Clean URL (remove ?token=)
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     if (!loading && !user) {

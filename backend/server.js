@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 
+
+
 const app = express();
 
 // Middleware
@@ -27,6 +29,7 @@ connectDB();
 
 // Routes
 app.use("/api/users", userRoutes);
+
 
 // Server start
 const PORT = process.env.PORT || 4000;

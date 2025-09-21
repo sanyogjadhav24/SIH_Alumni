@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
     universityName: { type: String, required: true, trim: true },
     role: {
       type: String,
-      enum: ["student", "alumni", "employer"],
+      enum: ["student", "alumni", "Employer","Admin"],
       required: true,
     },
     email: {

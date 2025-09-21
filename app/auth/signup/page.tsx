@@ -16,6 +16,7 @@ export default function SignupPage() {
   const { signup } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [documentError, setDocumentError] = useState<string | null>(null)
 
   // files
   const [documentFile, setDocumentFile] = useState<File | null>(null)
@@ -33,20 +34,37 @@ export default function SignupPage() {
     major: ''
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setDocumentError(null)
 
     try {
-
-      if (formData.password && formData.password.length < 5) {
-        setError("Password should be atleast 5 characters")
-        setLoading(false);
+      // Manual document validation
+      if (!documentFile) {
+        setDocumentError("Please upload a document file.")
+        setLoading(false)
         return
       }
-      if (!documentFile) {
-        setError("Please upload a document file.")
+
+      // Password validation
+      if (formData.password && formData.password.length < 5) {
+        setError("Password should be at least 5 characters")
+        setLoading(false)
+        return
+      }
+
+      // Graduation year validation
+      if (!formData.graduationYear) {
+        setError("Please select your graduation year")
+        setLoading(false)
+        return
+      }
+
+      // Role validation
+      if (!formData.role) {
+        setError("Please select a role")
         setLoading(false)
         return
       }
@@ -56,20 +74,13 @@ export default function SignupPage() {
       Object.entries(formData).forEach(([key, value]) => {
         formPayload.append(key, value as string)
       })
-
-      // Append required + optional files
       formPayload.append("documentFile", documentFile)
-      if (profileFile) {
-        formPayload.append("profileUrl", profileFile)
-      }
-      else  {
-        formPayload.append("profileUrl", "");
-      }
+      formPayload.append("profileUrl", profileFile || "")
 
-      // Call signup from useAuth
-      await signup(formPayload);
+      // Call signup
+      await signup(formPayload)
 
-      // Redirect if successful
+      // Redirect on success
       router.push("/dashboard")
     } catch (err: any) {
       setError(err.message || "Signup failed")
@@ -77,6 +88,7 @@ export default function SignupPage() {
       setLoading(false)
     }
   }
+
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
@@ -188,6 +200,7 @@ export default function SignupPage() {
                     <SelectItem value="student">Student</SelectItem>
                     <SelectItem value="alumni">Alumni</SelectItem>
                     <SelectItem value="employer">Employer</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -210,7 +223,6 @@ export default function SignupPage() {
                     }}
                     pattern="\d{10}"
                     maxLength={10}
-                    
                   />
                 </div>
               </div>
@@ -238,10 +250,11 @@ export default function SignupPage() {
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
                       setDocumentFile(e.target.files[0])
+                      setDocumentError(null)
                     }
                   }}
-                  required
                 />
+                {documentError && <p className="text-sm text-red-500">{documentError}</p>}
               </div>
 
               {/* Profile Picture Upload (Optional) */}
@@ -276,7 +289,9 @@ export default function SignupPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Graduation Year</Label>
-                  <Select onValueChange={(value) => setFormData({ ...formData, graduationYear: value })} required>
+                  <Select
+                    onValueChange={(value) => setFormData({ ...formData, graduationYear: value })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Year" />
                     </SelectTrigger>
@@ -301,8 +316,33 @@ export default function SignupPage() {
               {/* Error Message */}
               {error && <p className="text-sm text-red-500">{error}</p>}
 
+              {/* Divider */}
+              <div className="flex items-center my-4">
+                <div className="flex-grow border-t border-gray-300"></div>
+                <span className="mx-2 text-sm text-gray-500">or continue with</span>
+                <div className="flex-grow border-t border-gray-300"></div>
+              </div>
+
+              {/* Social Logo Buttons */}
+              <div className="flex gap-4 justify-center">
+                <button
+                  type="button"
+                  className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 transition"
+                  
+                >
+                  <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 transition"
+                >
+                  <img src="/LinkedIn_icon.svg.png" alt="LinkedIn" className="w-5 h-5" />
+                </button>
+              </div>
+
               {/* Submit */}
-              <Button type="submit" className="w-full bg-gradient-primary" disabled={loading} onClick={handleSubmit}>
+              <Button type="submit" className="w-full bg-gradient-primary" disabled={loading}>
                 {loading ? 'Creating...' : 'Create Account'}
               </Button>
 
