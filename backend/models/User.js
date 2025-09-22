@@ -22,7 +22,14 @@ const userSchema = new mongoose.Schema(
     documentLink: { type: String, required: true },
     profileUrl: { type: String },
     isVerified: { type: Boolean, default: false },
-    graduationYear: { type: String }, 
+    graduationYear: { type: String },
+    profileViews: { type: Number, default: 0 },
+    connectionRequests: [{
+      from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      status: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
+      createdAt: { type: Date, default: Date.now }
+    }],
+    connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
   },
   { timestamps: true }
 );
