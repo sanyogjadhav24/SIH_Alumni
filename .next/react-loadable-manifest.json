@@ -1,4 +1,10 @@
 {
+  "app\\dashboard\\page.tsx -> ethers": {
+    "id": "app\\dashboard\\page.tsx -> ethers",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_ethers_lib_esm_index_js.js"
+    ]
+  },
   "node_modules\\next\\dist\\client\\components\\react-dev-overlay\\internal\\helpers\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts": {
     "id": "node_modules\\next\\dist\\client\\components\\react-dev-overlay\\internal\\helpers\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts",
     "files": [

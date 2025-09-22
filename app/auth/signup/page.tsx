@@ -78,10 +78,14 @@ export default function SignupPage() {
       formPayload.append("profileUrl", profileFile || "")
 
       // Call signup
-      await signup(formPayload)
+      const res = await signup(formPayload)
 
-      // Redirect on success
-      router.push("/dashboard")
+      // Redirect on success: alumni should go to public verify flow
+      if (res && res.user && res.user.role === 'alumni') {
+        router.push('/verify-public')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err: any) {
       setError(err.message || "Signup failed")
     } finally {

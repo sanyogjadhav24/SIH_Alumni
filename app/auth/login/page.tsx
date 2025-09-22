@@ -31,14 +31,31 @@ export default function LoginPage() {
       const data = await login(formData.email, formData.password)
 
       if (data && data.user) {
-        // Successful login, redirect to dashboard
-        router.push('/dashboard')
+        // Successful login, redirect based on role
+        if (data.user.role === 'admin') {
+          router.push('/dashboard/admin-users')
+        } else {
+          router.push('/dashboard')
+        }
       } else {
         // If backend returns error
+        if (data && (data.status === 403 || /verification|pending/i.test(data.message || ''))) {
+          // Throw a specific error message so UI can detect verification pending state
+          const msg = data.message || 'Account pending verification. Please complete verification.'
+          const err: any = new Error(msg)
+          // attach a flag so UI can show a button to go to verification
+          err.verificationPending = true
+          throw err
+        }
         throw new Error(data.message || 'Invalid credentials')
       }
     } catch (err: any) {
       setError(err.message)
+      // set a local flag if the error indicates verification pending
+      if (err && err.verificationPending) {
+        // store as a special string so rendering can show the button
+        setError(err.message + '::verificationPending')
+      }
     } finally {
       setLoading(false)
     }
@@ -105,7 +122,19 @@ export default function LoginPage() {
               </div>
 
               {/* Error Message */}
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && (
+                <div className="space-y-2">
+                  <p className="text-sm text-red-500">{error.replace('::verificationPending','')}</p>
+                  {/* If error contains our verificationPending marker, show button to go to verify-public */}
+                  {error.includes('::verificationPending') && (
+                    <div className="pt-1">
+                      <Button variant="ghost" onClick={() => router.push('/verify-public')} className="w-full border border-dashed">
+                        Complete verification
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Submit */}
               <Button type="submit" className="w-full bg-gradient-primary" disabled={loading}>

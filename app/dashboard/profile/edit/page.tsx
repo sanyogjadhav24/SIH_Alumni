@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Save, Camera } from "lucide-react";
+import { Save, Camera, FileText, Eye } from "lucide-react";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -27,7 +27,35 @@ export default function EditProfilePage() {
     documentLink: null as File | null,
   });
 
-  const [previewImage, setPreviewImage] = useState(user?.profileUrl || "");
+  const [previewImage, setPreviewImage] = useState(
+    user?.profileUrl && user.profileUrl !== "" 
+      ? (user.profileUrl.startsWith('/api/') 
+          ? `http://localhost:4000${user.profileUrl}` 
+          : user.profileUrl)
+      : ""
+  );
+
+  // Helper function to handle document viewing with error handling
+  const handleViewDocument = async (documentUrl: string) => {
+    try {
+      // Convert relative URLs to full backend URLs
+      const fullUrl = documentUrl.startsWith('/api/') 
+        ? `http://localhost:4000${documentUrl}`
+        : documentUrl;
+      
+      const newWindow = window.open(fullUrl, '_blank');
+      
+      if (!newWindow) {
+        alert('Popup blocked. Please allow popups for this site.');
+        return;
+      }
+      
+      console.log('Document opened:', fullUrl);
+    } catch (error) {
+      console.error('Error opening document:', error);
+      alert('Error opening document. Please contact support if this issue persists.');
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, files } = e.target as any;
@@ -227,12 +255,42 @@ export default function EditProfilePage() {
 
             <div className="space-y-2">
               <Label htmlFor="documentLink">Upload Document</Label>
+              
+              {/* Show current document if exists */}
+              {user?.documentLink && (
+                <div className="mb-3 p-3 border rounded-lg bg-gray-50 dark:bg-gray-900">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Current Document</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDocument(user.documentLink)}
+                      className="gap-1"
+                    >
+                      <Eye className="h-3 w-3" />
+                      View
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload a new file below to replace this document
+                  </p>
+                </div>
+              )}
+
               <Input
                 id="documentLink"
                 type="file"
                 name="documentLink"
                 onChange={handleChange}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
               />
+              <p className="text-xs text-gray-500">
+                Accepted formats: PDF, DOC, DOCX, JPG, JPEG, PNG
+              </p>
             </div>
 
             <Button type="submit" className="w-full gap-2">

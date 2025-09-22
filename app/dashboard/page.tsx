@@ -1,7 +1,7 @@
 'use client'
 import { useAuth } from '../hooks/useAuth'
 import { useRouter,useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
@@ -12,6 +12,79 @@ import { Heart, MessageCircle, Share, MoreHorizontal, Image as ImageIcon, Calend
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter()
+  const [walletAddr, setWalletAddr] = useState<string | null>(null)
+
+  const handleConnectWallet = async () => {
+    if (!(window as any).ethereum) {
+      alert('No web3 wallet found')
+      return
+    }
+    try {
+      const provider = new (await import('ethers')).providers.Web3Provider((window as any).ethereum)
+      await provider.send('eth_requestAccounts', [])
+      const signer = provider.getSigner()
+      const address = await signer.getAddress()
+      setWalletAddr(address)
+
+      const token = localStorage.getItem('token')
+      const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000')
+      await fetch(`${base}/api/users/set-wallet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ walletAddress: address }),
+      })
+      // best effort: we don't refresh auth context here; a manual refresh will show updated state
+    } catch (e) {
+      console.error(e)
+      alert('Wallet connection failed')
+    }
+  }
+
+  // verification state for alumni upload
+  const [docFile, setDocFile] = useState<File | null>(null)
+  const [verifying, setVerifying] = useState(false)
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(null)
+
+  const handleVerifyUpload = async () => {
+    setVerifyMessage(null)
+    if (!docFile) return alert('Please choose a document file to upload')
+    const walletToUse = walletAddr || user?.walletAddress
+    if (!walletToUse) return alert('Please connect your wallet first')
+
+    setVerifying(true)
+    try {
+      const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000')
+      const form = new FormData()
+      form.append('documentFile', docFile)
+      form.append('walletAddress', walletToUse)
+
+      const res = await fetch(`${base}/api/users/verify-document`, {
+        method: 'POST',
+        body: form,
+      })
+
+      const json = await res.json()
+      if (!res.ok) {
+        setVerifyMessage(json.message || 'Verification failed')
+      } else {
+        if (json.verified) {
+          setVerifyMessage('Verified — congratulations!')
+          // refresh the page/auth to pick up updated isVerified flag
+          setTimeout(()=> window.location.reload(), 800)
+        } else {
+          setVerifyMessage('Not found in admin dataset')
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      setVerifyMessage('Server error during verification')
+    } finally {
+      setVerifying(false)
+    }
+  }
 
   const searchParams = useSearchParams();
 
@@ -26,6 +99,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth/login')
+    }
+    // If logged in and admin, go to admin users dashboard
+    if (!loading && user && user.role === 'admin') {
+      router.push('/dashboard/admin-users');
     }
   }, [loading, user, router])
 
@@ -51,6 +128,30 @@ export default function DashboardPage() {
           >
             Connect Share Grow Succeed
           </Button>
+          <div className="mt-4 space-x-2">
+            {user.role === 'admin' ? (
+              <Button onClick={() => router.push('/dashboard/admin-users')} className="bg-indigo-600 text-white">
+                Admin Dashboard
+              </Button>
+              ) : (
+              <>
+                {/* For students/alumni show wallet connect + verified badge */}
+                <div className="flex items-center gap-3">
+                  <button onClick={handleConnectWallet} className="px-4 py-2 bg-green-600 text-white rounded">{walletAddr ? `Connected: ${walletAddr}` : 'Connect Wallet'}</button>
+                  <span className="ml-3">{user.isVerified ? <span className="inline-block bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Verified Alumni</span> : <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending Verification</span>}</span>
+                </div>
+
+                {/* Document upload & verify (alumni) */}
+                {!user.isVerified && (
+                  <div className="mt-3">
+                    <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e)=> setDocFile(e.target.files?.[0] || null)} />
+                    <button onClick={handleVerifyUpload} disabled={verifying} className="ml-3 px-3 py-2 bg-blue-600 text-white rounded">{verifying ? 'Verifying...' : 'Upload & Verify'}</button>
+                    {verifyMessage && <div className="mt-2 text-sm text-gray-700">{verifyMessage}</div>}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 

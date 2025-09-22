@@ -24,9 +24,19 @@ function AuthProvider({ children }) {
         const data = await res.json();
         setUser(data);
       } else {
-        setUser(null);
+        const data = await res.json();
+        // If authentication is required, clear token and user
+        if (data.requiresLogin || res.status === 401) {
+          localStorage.removeItem("token");
+          setUser(null);
+        } else {
+          setUser(null);
+        }
       }
-    } catch {
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      // Clear token on network errors or other issues
+      localStorage.removeItem("token");
       setUser(null);
     }
   }, []);
@@ -41,9 +51,10 @@ function AuthProvider({ children }) {
     const data = await res.json();
     if (res.ok) {
       localStorage.setItem("token", data.token);
-      setUser(data.user);
+      // refresh user information from server
+      await fetchUser(data.token);
     }
-    return data;
+    return { status: res.status, ...data };
   };
 
   // signup 
@@ -83,7 +94,10 @@ function AuthProvider({ children }) {
   const editProfile = async (formData) => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) throw new Error("Not authenticated");
+      if (!token) {
+        logout(); // Clear state and redirect to login
+        throw new Error("Not authenticated");
+      }
 
       const res = await fetch(`${API_URL}/edit`, {
         method: "PUT",
@@ -95,9 +109,15 @@ function AuthProvider({ children }) {
 
       const data = await res.json();
 
-      // if (!res.ok) {
-      //   throw new Error(data.message || "Update failed");
-      // }
+      // Check if authentication is required
+      if (data.requiresLogin || res.status === 401) {
+        logout(); // Clear state and redirect to login
+        throw new Error("Session expired. Please login again.");
+      }
+
+      if (!res.ok) {
+        throw new Error(data.message || "Update failed");
+      }
 
       setUser(data.user); 
       return data;
