@@ -100,13 +100,13 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 text-white hover:text-white/80 transition-colors">
             <GraduationCap className="h-8 w-8" />
-            <span className="text-2xl font-bold">AlumniNet</span>
+            <span className="text-2xl font-bold">GradNet</span>
           </Link>
         </div>
 
         <Card className="bg-white/95 backdrop-blur-sm border-white/20">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Join AlumniNet</CardTitle>
+            <CardTitle className="text-2xl font-bold">Join GradNet</CardTitle>
             <CardDescription>Connect with your alumni community</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -331,8 +331,8 @@ export default function SignupPage() {
               <div className="flex gap-4 justify-center">
                 <button
                   type="button"
+                  // onClick={() => signIn("google", { callbackUrl: "/auth/complete-profile" })}
                   className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 transition"
-                  
                 >
                   <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
                 </button>

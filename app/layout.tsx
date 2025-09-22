@@ -5,10 +5,11 @@ import { Providers } from './providers'
 import ProtectedRoute from '../components/ProtectedRoute'
 import {AuthProvider} from './hooks/useAuth';
 
+
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AlumniConnect - Professional Alumni Network',
+  title: 'GradNet - Professional Alumni Network',
   description: 'Connect with your alumni community, find mentors, and advance your career',
 }
 
@@ -25,6 +26,7 @@ export default function RootLayout({
           {children}
           </AuthProvider>
         </Providers>
+        
       </body>
     </html>
   )

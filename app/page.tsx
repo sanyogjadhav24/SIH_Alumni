@@ -47,7 +47,7 @@ export default function LandingPage() {
       role: "Software Engineer at Google",
       batch: "MIT Class of 2018",
       content:
-        "AlumniConnect helped me find an amazing mentor who guided my career transition into tech.",
+        "GradNet helped me find an amazing mentor who guided my career transition into tech.",
       rating: 5,
     },
     {
@@ -79,7 +79,7 @@ export default function LandingPage() {
                 <GraduationCap className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">
-                AlmaConnect
+                GradNet
               </span>
             </div>
 
@@ -213,7 +213,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Why Choose AlmaConnect?
+              Why Choose GradNet?
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               The most comprehensive platform for alumni networking and
@@ -330,7 +330,7 @@ export default function LandingPage() {
               <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
                 <GraduationCap className="h-4 w-4 text-white" />
               </div>
-              <span className="text-lg font-bold">AlmaConnect</span>
+              <span className="text-lg font-bold">GradNet</span>
             </div>
 
             <div className="flex items-center gap-6 text-sm text-gray-400">
@@ -347,7 +347,7 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
-            © 2024 AlmaConnect. All rights reserved. Connecting alumni
+            © 2024 GradNet. All rights reserved. Connecting alumni
             worldwide.
           </div>
         </div>

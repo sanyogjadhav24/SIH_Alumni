@@ -1,5 +1,4 @@
 "use client";
-
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
@@ -94,6 +93,8 @@ function AuthProvider({ children }) {
   const editProfile = async (formData) => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) return { success: false, message: "Not authenticated" };
+  
       if (!token) {
         logout(); // Clear state and redirect to login
         throw new Error("Not authenticated");
@@ -104,10 +105,19 @@ function AuthProvider({ children }) {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        body: formData, 
+        body: formData,
       });
-
+  
       const data = await res.json();
+  
+      if (!res.ok) {
+        // Instead of throwing, return backend message so UI stays on same page
+        return { success: false, message: data.message || "Update failed" };
+      }
+  
+      // Update state
+      setUser(data.user);
+      return { success: true, ...data };
 
       // Check if authentication is required
       if (data.requiresLogin || res.status === 401) {
@@ -123,9 +133,10 @@ function AuthProvider({ children }) {
       return data;
     } catch (err) {
       console.error(err);
-      throw err;
+      return { success: false, message: err.message || "Server error" };
     }
   };
+  
 
   // check auth on mount
   useEffect(() => {
