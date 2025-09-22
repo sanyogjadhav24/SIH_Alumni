@@ -327,8 +327,8 @@ export default function SignupPage() {
               <div className="flex gap-4 justify-center">
                 <button
                   type="button"
+                  // onClick={() => signIn("google", { callbackUrl: "/auth/complete-profile" })}
                   className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 transition"
-                  
                 >
                   <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
                 </button>

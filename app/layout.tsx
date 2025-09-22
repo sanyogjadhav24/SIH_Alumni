@@ -5,6 +5,7 @@ import { Providers } from './providers'
 import ProtectedRoute from '../components/ProtectedRoute'
 import {AuthProvider} from './hooks/useAuth';
 
+
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({
           {children}
           </AuthProvider>
         </Providers>
+        
       </body>
     </html>
   )

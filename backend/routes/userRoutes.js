@@ -164,10 +164,11 @@ router.post("/login", async (req, res) => {
 });
 
 
+// EDIT Profile Route 
 router.put(
   "/edit",
   upload.fields([
-    { name: "documentLink", maxCount: 1 }, // match frontend
+    { name: "documentLink", maxCount: 1 },
     { name: "profileUrl", maxCount: 1 },
   ]),
   async (req, res) => {
@@ -190,63 +191,77 @@ router.put(
         graduationYear,
       } = req.body;
 
-      // validate contact number
-      if (contactNumber === "") {
-        return res.status(400).json({ message: "Contact number cannot be empty" });
-      }
-
-      // Handle file uploads 
       let documentLink = user.documentLink;
       let profileLink = user.profileUrl;
 
-      if (req.files?.documentLink) {
-        const docPath = req.files.documentLink[0].path;
-        const uploadedDoc = await cloudinary.uploader.upload(docPath, {
-          folder: "alumniNet/documents",
-        });
-        documentLink = uploadedDoc.secure_url;
-        fs.unlinkSync(docPath);
-      }
-
-      if (req.files?.profileUrl) {
-        const profilePath = req.files.profileUrl[0].path;
-        const uploadedProfile = await cloudinary.uploader.upload(profilePath, {
-          folder: "alumniNet/profiles",
-        });
-        profileLink = uploadedProfile.secure_url;
-        fs.unlinkSync(profilePath);
-      }
-
-      //  Detect any changes 
-      const hasChanges =
+      // ✅ Detect if anything changed before uploading
+      const wantsToChange =
         (firstName && firstName !== user.firstName) ||
         (lastName && lastName !== user.lastName) ||
         (universityName && universityName !== user.universityName) ||
         (email && email !== user.email) ||
         (contactNumber && contactNumber !== user.contactNumber) ||
         (graduationYear && graduationYear !== user.graduationYear) ||
-        documentLink !== user.documentLink ||
-        profileLink !== user.profileUrl ||
-        newPassword;
+        newPassword ||
+        (req.files?.documentLink && req.files.documentLink.length > 0) ||
+        (req.files?.profileUrl && req.files.profileUrl.length > 0);
 
-      // If changes, validate old password 
-      if (hasChanges) {
+      if (!wantsToChange) {
+        return res.json({ message: "Profile already up to date", user });
+      }
+
+      // ✅ If changes, check old password
+      if (wantsToChange) {
         if (!oldPassword) {
-          return res.status(400).json({ message: "Old password required to save changes" });
+          return res
+            .status(400)
+            .json({ message: "Old password required to save changes" });
         }
 
         const isMatch = await bcrypt.compare(oldPassword, user.password);
         if (!isMatch) {
-          return res.status(400).json({ message: "Old password incorrect. Try again." });
+          return res
+            .status(400)
+            .json({ message: "Old password incorrect. Try again." });
         }
       }
 
+      // ✅ Upload only if new file selected
+      if (req.files?.documentLink && req.files.documentLink.length > 0) {
+        const uploadedDoc = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "alumniNet/documents" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          stream.end(req.files.documentLink[0].buffer);
+        });
+        documentLink = uploadedDoc.secure_url;
+      }
+
+      if (req.files?.profileUrl && req.files.profileUrl.length > 0) {
+        const uploadedProfile = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "alumniNet/profiles" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          stream.end(req.files.profileUrl[0].buffer);
+        });
+        profileLink = uploadedProfile.secure_url;
+      }
+
+      // ✅ Hash new password if provided
       let hashedPassword = user.password;
       if (newPassword) {
         hashedPassword = await bcrypt.hash(newPassword, 10);
       }
 
-      //  Update user fields 
+      // ✅ Apply updates
       user.firstName = firstName || user.firstName;
       user.lastName = lastName || user.lastName;
       user.universityName = universityName || user.universityName;
@@ -259,7 +274,6 @@ router.put(
 
       await user.save();
 
-      //  Return updated user 
       res.json({
         message: "Profile updated successfully",
         user: {
@@ -282,6 +296,9 @@ router.put(
     }
   }
 );
+
+
+
 
 // Get Current User 
 router.get("/me", async (req, res) => {

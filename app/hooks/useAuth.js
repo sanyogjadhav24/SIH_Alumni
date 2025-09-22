@@ -1,5 +1,4 @@
 "use client";
-
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
@@ -83,29 +82,32 @@ function AuthProvider({ children }) {
   const editProfile = async (formData) => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) throw new Error("Not authenticated");
-
+      if (!token) return { success: false, message: "Not authenticated" };
+  
       const res = await fetch(`${API_URL}/edit`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        body: formData, 
+        body: formData,
       });
-
+  
       const data = await res.json();
-
-      // if (!res.ok) {
-      //   throw new Error(data.message || "Update failed");
-      // }
-
-      setUser(data.user); 
-      return data;
+  
+      if (!res.ok) {
+        // Instead of throwing, return backend message so UI stays on same page
+        return { success: false, message: data.message || "Update failed" };
+      }
+  
+      // Update state
+      setUser(data.user);
+      return { success: true, ...data };
     } catch (err) {
       console.error(err);
-      throw err;
+      return { success: false, message: err.message || "Server error" };
     }
   };
+  
 
   // check auth on mount
   useEffect(() => {

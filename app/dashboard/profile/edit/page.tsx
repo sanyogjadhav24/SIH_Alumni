@@ -62,12 +62,18 @@ export default function EditProfilePage() {
 
     try {
         const response = await editProfile(fd);
-      
-        if (response?.message) {
-          alert(response.message); // show backend messages if present
+
+        if (response?.message === "Profile Updated Successfully") {
+          alert(response.message);
+            router.push("localhost:3000/dashboard/profile");
+          return;
         }
-      
-        router.push("/dashboard/profile");
+        if (response?.message) {
+          alert(response.message);
+          return; 
+        }
+        
+        
       } catch (err: any) {
         console.error(err);
         alert(err.message || "Error updating profile");

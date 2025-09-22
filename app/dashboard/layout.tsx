@@ -275,5 +275,6 @@ export default function DashboardLayout({
       )}
     </div>
     </ProtectedRoute>
+
   );
 }
