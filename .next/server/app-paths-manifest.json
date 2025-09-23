@@ -1,7 +1,5 @@
 {
-  "/auth/login/page": "app/auth/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/notifications/page": "app/dashboard/notifications/page.js",
-  "/dashboard/network/page": "app/dashboard/network/page.js",
+  "/api/posts/user/[userId]/summaries/route": "app/api/posts/user/[userId]/summaries/route.js",
+  "/dashboard/profile/[id]/page": "app/dashboard/profile/[id]/page.js",
   "/dashboard/profile/my-posts/page": "app/dashboard/profile/my-posts/page.js"
 }
