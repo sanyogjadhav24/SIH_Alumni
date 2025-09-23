@@ -1,27 +1,55 @@
 'use client'
 import { useAuth } from '../hooks/useAuth'
-import { useRouter,useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { Card, CardContent } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
-import { Badge } from "../../components/ui/badge"
-import { Heart, MessageCircle, Share, MoreHorizontal, Image as ImageIcon, Calendar, MapPin, Users, Smile } from "lucide-react"
+import CreatePost from "../../components/CreatePost"
+import PostCard from "../../components/PostCard"
+import { toast } from 'sonner'
 
+interface Post {
+  _id: string
+  content: string
+  category: 'photo' | 'event' | 'location' | 'feeling'
+  author: {
+    _id: string
+    firstName: string
+    lastName: string
+    universityName: string
+    role: string
+    profileUrl?: string
+  }
+  imageUrl?: string
+  eventDetails?: any
+  locationDetails?: any
+  feeling?: string
+  tags: string[]
+  likes: any[]
+  comments: any[]
+  likeCount: number
+  commentCount: number
+  shareCount: number
+  createdAt: string
+  updatedAt: string
+}
 
 export default function DashboardPage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout } = useAuth() as any
   const router = useRouter()
-
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()
+  const [posts, setPosts] = useState<Post[]>([])
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMorePosts, setHasMorePosts] = useState(true)
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const token = searchParams.get("token")
     if (token) {
-      localStorage.setItem("token", token);  // Save token
-      router.replace("/dashboard");          // Clean URL (remove ?token=)
+      localStorage.setItem("token", token)
+      router.replace("/dashboard")
     }
-  }, [searchParams, router]);
+  }, [searchParams, router])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -29,11 +57,54 @@ export default function DashboardPage() {
     }
   }, [loading, user, router])
 
-  if (loading || !user) return null; 
+  useEffect(() => {
+    if (user) {
+      fetchPosts()
+    }
+  }, [user])
 
-  if (loading) {
-    return <div className="p-6 text-center">Loading...</div>
+  const fetchPosts = async (page = 1, reset = true) => {
+    try {
+      setIsLoadingPosts(true)
+      const response = await fetch(`http://localhost:4000/api/posts?page=${page}&limit=10`)
+      const data = await response.json()
+
+      if (response.ok) {
+        if (reset) {
+          setPosts(data.posts)
+        } else {
+          setPosts(prev => [...prev, ...data.posts])
+        }
+        setHasMorePosts(data.pagination.hasNextPage)
+        setCurrentPage(page)
+      } else {
+        toast.error('Failed to fetch posts')
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error)
+      toast.error('Failed to fetch posts')
+    } finally {
+      setIsLoadingPosts(false)
+    }
   }
+
+  const handlePostCreated = () => {
+    // Refresh posts when a new post is created
+    fetchPosts(1, true)
+  }
+
+  const handleDeletePost = (postId: string) => {
+    setPosts(posts.filter(post => post._id !== postId))
+  }
+
+  const loadMorePosts = () => {
+    if (hasMorePosts && !isLoadingPosts) {
+      fetchPosts(currentPage + 1, false)
+    }
+  }
+
+  if (loading || !user) return <div className="p-6 text-center">Loading...</div>
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Welcome Banner */}
@@ -54,129 +125,59 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Create Post */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary text-white">
-                {user?.firstName[0]}{user?.lastName[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-3">
+      {/* Create Post Component */}
+      <CreatePost onPostCreated={handlePostCreated} />
+
+      {/* Posts Feed */}
+      <div className="space-y-6">
+        {isLoadingPosts && posts.length === 0 ? (
+          <div className="text-center py-8">
+            <p>Loading posts...</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <Card className="bg-white dark:bg-gray-800">
+            <CardContent className="p-8 text-center">
+              <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Be the first to share something with the community!
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {posts.map((post) => (
+              <PostCard
+                key={post._id}
+                post={post}
+                currentUserId={user?._id}
+                onDelete={handleDeletePost}
+                showActions={true}
+              />
+            ))}
+
+            {/* Load More Button */}
+            {hasMorePosts && (
+              <div className="text-center py-4">
+                <Button
+                  onClick={loadMorePosts}
+                  disabled={isLoadingPosts}
+                  variant="outline"
+                >
+                  {isLoadingPosts ? 'Loading...' : 'Load More Posts'}
+                </Button>
+              </div>
+            )}
+
+            {!hasMorePosts && posts.length > 0 && (
+              <div className="text-center py-4">
                 <p className="text-gray-500 dark:text-gray-400">
-                  Share your thoughts, achievements, or career updates with the
-                  AlmaConnect community...
+                  You've reached the end of the feed
                 </p>
               </div>
-              <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ImageIcon className="h-4 w-4" />
-                  Photo
-                </Button>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Event
-                </Button>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Location
-                </Button>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <Smile className="h-4 w-4" />
-                  Feeling
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Post */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3 mb-4">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-primary text-white">
-                {user.firstName[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                   {user?.firstName} {user?.lastName}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {user?.role} at {user?.universityName.toUpperCase()}
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    2 hours ago
-                  </p>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <p className="mb-4 text-gray-900 dark:text-white">
-              Excited to share that I&apos;ve been promoted to Senior Software
-              Engineer! The journey from our college days to here has been
-              incredible. Special thanks to the AlmaConnect community for all
-              the mentoring and support. Looking forward to giving back to our
-              amazing network! 🚀
-            </p>
-
-            {/* Post Image */}
-            <div className="rounded-lg overflow-hidden bg-gradient-to-br from-primary/80 to-cyan-400 h-64 flex items-center justify-center">
-              <div className="text-white text-center">
-                <div className="w-16 h-16 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <Users className="h-8 w-8" />
-                </div>
-                <p className="text-lg font-medium">Team Collaboration</p>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-3">
-              <Badge variant="secondary">#career</Badge>
-              <Badge variant="secondary">#promotion</Badge>
-              <Badge variant="secondary">#google</Badge>
-              <Badge variant="secondary">#grateful</Badge>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t dark:border-gray-700">
-            <div className="flex items-center gap-6">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-gray-600 dark:text-gray-400"
-              >
-                <Heart className="h-4 w-4" />
-                42
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-gray-600 dark:text-gray-400"
-              >
-                <MessageCircle className="h-4 w-4" />8
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-gray-600 dark:text-gray-400"
-              >
-                <Share className="h-4 w-4" />3
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          </>
+        )}
+      </div>
     </div>
-  );
+  )
 }
