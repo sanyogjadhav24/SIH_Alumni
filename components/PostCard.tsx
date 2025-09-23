@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import SharePost from './SharePost'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import { 
@@ -89,7 +90,9 @@ export default function PostCard({
     post.likes.some(like => like.user === currentUserId)
   )
   const [likeCount, setLikeCount] = useState(post.likeCount || post.likes.length)
+  const [shareCount, setShareCount] = useState(post.shareCount || 0)
   const [showComments, setShowComments] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [comments, setComments] = useState(post.comments || [])
   const [isCommenting, setIsCommenting] = useState(false)
@@ -177,6 +180,11 @@ export default function PostCard({
       console.error('Error deleting post:', error)
       toast.error('Failed to delete post')
     }
+  }
+
+  const handleShareSuccess = () => {
+    // Refresh share count from latest post data
+    setShareCount(prev => prev + 1)
   }
 
   const getCategoryIcon = () => {
@@ -366,9 +374,10 @@ export default function PostCard({
               variant="ghost"
               size="sm"
               className="gap-2 text-gray-600 dark:text-gray-400"
+              onClick={() => setShowShareDialog(true)}
             >
               <Share className="h-4 w-4" />
-              {post.shareCount || 0}
+              {shareCount}
             </Button>
           </div>
         </div>
@@ -434,6 +443,15 @@ export default function PostCard({
           </div>
         )}
       </CardContent>
+      
+      {/* Share Dialog */}
+      <SharePost
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        postId={post._id}
+        postContent={post.content}
+        onShareSuccess={handleShareSuccess}
+      />
     </Card>
   )
 }

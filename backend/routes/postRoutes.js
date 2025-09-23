@@ -177,6 +177,122 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get feed posts (college + connections)
+router.get("/feed", authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, category } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Get current user with connections
+    const currentUser = await User.findById(req.user._id).populate('connections');
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    console.log('Current user:', currentUser.firstName, currentUser.universityName);
+    console.log('User connections:', currentUser.connections.length);
+
+    // Create array of user IDs to include in feed
+    const feedUserIds = [
+      ...currentUser.connections.map(conn => conn._id), // Connected users
+    ];
+
+    // Get all users from the same university (excluding current user)
+    const universityUsers = await User.find({
+      universityName: currentUser.universityName,
+      _id: { $ne: req.user._id } // Exclude current user
+    }).select('_id firstName lastName');
+
+    console.log('University users found:', universityUsers.length);
+    console.log('University users:', universityUsers.map(u => u.firstName + ' ' + u.lastName));
+
+    // Add university users to feed
+    feedUserIds.push(...universityUsers.map(user => user._id));
+
+    console.log('Total feed user IDs:', feedUserIds.length);
+
+    // Build query for feed posts - only from connections and university peers
+    let query = { 
+      isPublic: true,
+      author: { $in: feedUserIds } // Only posts from feed users
+    };
+
+    // Add category filter if specified
+    if (category && category !== "all") {
+      query.category = category;
+    }
+
+    const posts = await Post.find(query)
+      .populate('author', 'firstName lastName universityName role profileUrl')
+      .populate('likes.user', 'firstName lastName')
+      .populate('comments.user', 'firstName lastName profileUrl')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(skip);
+
+    console.log('Posts found in feed:', posts.length);
+
+    // Get total count for pagination
+    const totalPosts = await Post.countDocuments(query);
+
+    res.json({
+      posts,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalPosts / limit),
+        totalPosts,
+        hasNextPage: skip + posts.length < totalPosts,
+        hasPrevPage: page > 1
+      },
+      debug: {
+        currentUser: currentUser.firstName + ' ' + currentUser.lastName,
+        university: currentUser.universityName,
+        connectionsCount: currentUser.connections.length,
+        universityUsersCount: universityUsers.length,
+        totalFeedUsers: feedUserIds.length,
+        postsFound: posts.length
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching feed posts:", error);
+    res.status(500).json({ 
+      error: "Failed to fetch feed posts",
+      details: error.message 
+    });
+  }
+});
+
+// Debug endpoint to check users and posts
+router.get("/debug", authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user._id);
+    const allUsers = await User.find({}).select('firstName lastName universityName role');
+    const allPosts = await Post.find({}).populate('author', 'firstName lastName universityName');
+    
+    res.json({
+      currentUser: {
+        name: currentUser.firstName + ' ' + currentUser.lastName,
+        university: currentUser.universityName,
+        role: currentUser.role
+      },
+      allUsers: allUsers.map(u => ({
+        name: u.firstName + ' ' + u.lastName,
+        university: u.universityName,
+        role: u.role
+      })),
+      allPosts: allPosts.map(p => ({
+        content: p.content.substring(0, 50) + '...',
+        author: p.author.firstName + ' ' + p.author.lastName,
+        university: p.author.universityName,
+        isPublic: p.isPublic
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get posts by category
 router.get("/category/:category", async (req, res) => {
   try {
@@ -459,6 +575,63 @@ router.post("/:id/comment", authenticateToken, async (req, res) => {
     console.error("Error adding comment:", error);
     res.status(500).json({ 
       error: "Failed to add comment",
+      details: error.message 
+    });
+  }
+});
+
+// Share a post
+router.post("/:id/share", authenticateToken, async (req, res) => {
+  try {
+    const { connectionIds, message } = req.body;
+    const post = await Post.findById(req.params.id);
+    
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check if user has connections
+    const currentUser = await User.findById(req.user._id).populate('connections');
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Validate that all connectionIds are actually user's connections
+    const validConnectionIds = connectionIds.filter(connId => 
+      currentUser.connections.some(conn => conn._id.toString() === connId)
+    );
+
+    if (validConnectionIds.length === 0) {
+      return res.status(400).json({ error: "No valid connections selected" });
+    }
+
+    // Add share to post (for analytics)
+    await post.addShare(req.user._id);
+
+    // Create share notifications/records for each connection
+    const sharePromises = validConnectionIds.map(async (connectionId) => {
+      // Here you could create a notification system or shared posts collection
+      // For now, we'll just track the share in the post
+      return {
+        sharedTo: connectionId,
+        sharedBy: req.user._id,
+        sharedAt: new Date(),
+        message: message || ""
+      };
+    });
+
+    const shareResults = await Promise.all(sharePromises);
+
+    res.json({
+      message: `Post shared with ${validConnectionIds.length} connection(s)`,
+      shareCount: post.shareCount,
+      sharedWith: shareResults
+    });
+
+  } catch (error) {
+    console.error("Error sharing post:", error);
+    res.status(500).json({ 
+      error: "Failed to share post",
       details: error.message 
     });
   }

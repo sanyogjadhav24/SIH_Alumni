@@ -50,7 +50,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 text-white hover:text-white/80 transition-colors">
             <GraduationCap className="h-8 w-8" />
-            <span className="text-2xl font-bold">AlumniNet</span>
+            <span className="text-2xl font-bold">GradNet</span>
           </Link>
         </div>
 

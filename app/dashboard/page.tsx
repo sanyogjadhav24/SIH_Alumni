@@ -66,7 +66,12 @@ export default function DashboardPage() {
   const fetchPosts = async (page = 1, reset = true) => {
     try {
       setIsLoadingPosts(true)
-      const response = await fetch(`http://localhost:4000/api/posts?page=${page}&limit=10`)
+      const token = localStorage.getItem('token')
+      const response = await fetch(`http://localhost:4000/api/posts/feed?page=${page}&limit=10`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const data = await response.json()
 
       if (response.ok) {
@@ -113,8 +118,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold mb-2">Welcome to AlmaConnect</h1>
           <h1 className="text-3xl font-bold mb-2">Welcome {user?.firstName} 👋</h1>
           <p className="text-primary-foreground/80 text-lg mb-4">
-            Your professional alumni network where stories inspire careers and
-            connections create opportunities.
+            Your personalized feed showing posts from your college network and connections.
           </p>
           <Button
             variant="secondary"
@@ -128,6 +132,14 @@ export default function DashboardPage() {
       {/* Create Post Component */}
       <CreatePost onPostCreated={handlePostCreated} />
 
+      {/* Feed Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Feed</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Posts from your college and network connections
+        </p>
+      </div>
+
       {/* Posts Feed */}
       <div className="space-y-6">
         {isLoadingPosts && posts.length === 0 ? (
@@ -137,10 +149,23 @@ export default function DashboardPage() {
         ) : posts.length === 0 ? (
           <Card className="bg-white dark:bg-gray-800">
             <CardContent className="p-8 text-center">
-              <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+              <h3 className="text-lg font-semibold mb-2">No posts in your feed yet</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Be the first to share something with the community!
+                Your feed shows posts from your college network and connections. Connect with alumni from {user?.universityName} to see more posts!
               </p>
+              <Button 
+                onClick={() => router.push('/dashboard/network')}
+                variant="outline"
+                className="mr-2"
+              >
+                Find Connections
+              </Button>
+              <Button 
+                onClick={() => router.push('/dashboard/profile/my-posts')}
+                variant="outline"
+              >
+                View My Posts
+              </Button>
             </CardContent>
           </Card>
         ) : (

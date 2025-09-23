@@ -201,6 +201,25 @@ postSchema.methods.addComment = function(userId, content) {
   return this.save();
 };
 
+// Method to check if user has shared the post
+postSchema.methods.isSharedBy = function(userId) {
+  return this.shares.some(share => share.user.toString() === userId.toString());
+};
+
+// Method to add a share
+postSchema.methods.addShare = function(userId) {
+  if (!this.isSharedBy(userId)) {
+    this.shares.push({ user: userId });
+  }
+  return this.save();
+};
+
+// Method to remove a share
+postSchema.methods.removeShare = function(userId) {
+  this.shares = this.shares.filter(share => share.user.toString() !== userId.toString());
+  return this.save();
+};
+
 // Static method to get posts by category
 postSchema.statics.getByCategory = function(category, limit = 10, skip = 0) {
   return this.find({ category, isPublic: true })
