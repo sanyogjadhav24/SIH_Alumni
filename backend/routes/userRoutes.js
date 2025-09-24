@@ -195,7 +195,7 @@ router.put(
       let documentLink = user.documentLink;
       let profileLink = user.profileUrl;
 
-      // ✅ Detect if anything changed before uploading
+      // Detect if anything changed before uploading
       const wantsToChange =
         (firstName && firstName !== user.firstName) ||
         (lastName && lastName !== user.lastName) ||
@@ -211,7 +211,7 @@ router.put(
         return res.json({ message: "Profile already up to date", user });
       }
 
-      // ✅ If changes, check old password
+      // If changes, check old password
       if (wantsToChange) {
         if (!oldPassword) {
           return res
@@ -227,7 +227,7 @@ router.put(
         }
       }
 
-      // ✅ Upload only if new file selected
+      // Upload only if new file selected
       if (req.files?.documentLink && req.files.documentLink.length > 0) {
         const uploadedDoc = await new Promise((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -256,13 +256,13 @@ router.put(
         profileLink = uploadedProfile.secure_url;
       }
 
-      // ✅ Hash new password if provided
+      // Hash new password if provided
       let hashedPassword = user.password;
       if (newPassword) {
         hashedPassword = await bcrypt.hash(newPassword, 10);
       }
 
-      // ✅ Apply updates
+      // Apply updates
       user.firstName = firstName || user.firstName;
       user.lastName = lastName || user.lastName;
       user.universityName = universityName || user.universityName;
