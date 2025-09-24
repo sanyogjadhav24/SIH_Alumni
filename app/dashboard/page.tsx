@@ -116,7 +116,7 @@ export default function DashboardPage() {
       {/* Welcome Banner */}
       <Card className="bg-gradient-to-r from-primary to-primary/90 text-white border-0">
         <CardContent className="p-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome to AlmaConnect</h1>
+          <h1 className="text-3xl font-bold mb-2">Welcome to GradeNet</h1>
           <h1 className="text-3xl font-bold mb-2">Welcome {user?.firstName} 👋</h1>
           <p className="text-primary-foreground/80 text-lg mb-4">
             Your professional alumni network where stories inspire careers and
@@ -135,14 +135,16 @@ export default function DashboardPage() {
               </Button>
               ) : (
               <>
-                {/* For students/alumni show wallet connect + verified badge */}
+                {/* Wallet connect; show verification UI only for alumni */}
                 <div className="flex items-center gap-3">
                   <button onClick={handleConnectWallet} className="px-4 py-2 bg-green-600 text-white rounded">{walletAddr ? `Connected: ${walletAddr}` : 'Connect Wallet'}</button>
-                  <span className="ml-3">{user.isVerified ? <span className="inline-block bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Verified Alumni</span> : <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending Verification</span>}</span>
+                  {user.role === 'alumni' && (
+                    <span className="ml-3">{user.isVerified ? <span className="inline-block bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Verified Alumni</span> : <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending Verification</span>}</span>
+                  )}
                 </div>
 
-                {/* Document upload & verify (alumni) */}
-                {!user.isVerified && (
+                {/* Document upload & verify (only for alumni and when not verified) */}
+                {user.role === 'alumni' && !user.isVerified && (
                   <div className="mt-3">
                     <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e)=> setDocFile(e.target.files?.[0] || null)} />
                     <button onClick={handleVerifyUpload} disabled={verifying} className="ml-3 px-3 py-2 bg-blue-600 text-white rounded">{verifying ? 'Verifying...' : 'Upload & Verify'}</button>

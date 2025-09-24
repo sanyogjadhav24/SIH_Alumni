@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 const userRoutes = require("./routes/userRoutes");
+const { router: jobRoutes } = require("./routes/jobRoutes");
 
 const app = express();
 
@@ -48,6 +49,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use("/api/jobs", jobRoutes);
 
 
 // Server start

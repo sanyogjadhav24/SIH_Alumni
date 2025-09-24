@@ -7,6 +7,12 @@ const fs = require("fs");
 const cloudinary = require("cloudinary").v2;
 const User = require("../models/User");
 const Connection = require("../models/Connection");
+const Job = require("../models/Job");
+const { 
+  sendJobRecommendationNotification,
+  sendJobPostingConfirmation,
+  sendJobApplicationNotification 
+} = require("../services/notificationService");
 
 const router = express.Router();
 
@@ -390,7 +396,7 @@ router.post("/login", async (req, res) => {
 
     // If user is an alumni and not verified, block login and notify
     if (user.role === 'alumni' && !user.isVerified) {
-      return res.status(403).json({ message: 'Account pending admin verification. Please wait for approval.' });
+      return res.status(403).json({ message: 'Account pending admin verification. Please wait for approval.', role: user.role });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -464,7 +470,23 @@ router.put(
         newPassword,
         contactNumber,
         graduationYear,
+        about,
+        skills,
+        experience,
+        education,
+        awards,
+        openToWork,
       } = req.body;
+
+      // Debug: Log what we received
+      console.log('Edit profile - received data types:', {
+        skillsType: typeof skills,
+        experienceType: typeof experience,
+        educationType: typeof education,
+        awardsType: typeof awards,
+        skillsValue: skills,
+        skillsLength: skills ? skills.length : 'N/A'
+      });
 
       // validate contact number
       if (contactNumber === "") {
@@ -526,9 +548,7 @@ router.put(
         }
       }
 
-      //  Detect any changes 
-      const hasChanges =
-      // ✅ Detect if anything changed before uploading
+      // Detect any changes before saving
       const wantsToChange =
         (firstName && firstName !== user.firstName) ||
         (lastName && lastName !== user.lastName) ||
@@ -536,6 +556,12 @@ router.put(
         (email && email !== user.email) ||
         (contactNumber && contactNumber !== user.contactNumber) ||
         (graduationYear && graduationYear !== user.graduationYear) ||
+        (about && about !== user.about) ||
+        (openToWork !== undefined && openToWork !== user.openToWork) ||
+        (skills && skills !== undefined) ||
+        (experience && experience !== undefined) ||
+        (education && education !== undefined) ||
+        (awards && awards !== undefined) ||
         newPassword ||
         (req.files?.documentLink && req.files.documentLink.length > 0) ||
         (req.files?.profileUrl && req.files.profileUrl.length > 0);
@@ -606,7 +632,107 @@ router.put(
       user.profileUrl = profileLink;
       user.password = hashedPassword;
 
-      await user.save();
+      // Update additional profile fields
+      if (about !== undefined) user.about = about;
+      if (openToWork !== undefined) user.openToWork = openToWork;
+      if (skills !== undefined) {
+        try {
+          // Parse skills if it's a JSON string, otherwise use as-is
+          let parsedSkills;
+          if (typeof skills === 'string') {
+            parsedSkills = JSON.parse(skills);
+          } else if (Array.isArray(skills)) {
+            parsedSkills = skills;
+          } else {
+            throw new Error('Skills must be an array or JSON string');
+          }
+          console.log('Processing skills data:', parsedSkills);
+          user.skills = parsedSkills;
+        } catch (error) {
+          console.error('Error parsing skills:', error);
+          console.error('Skills data received:', skills);
+          console.error('Skills data type:', typeof skills);
+          throw new Error('Invalid skills data format');
+        }
+      }
+      if (experience !== undefined) {
+        try {
+          // Parse experience if it's a JSON string, otherwise use as-is
+          let parsedExperience;
+          if (typeof experience === 'string') {
+            parsedExperience = JSON.parse(experience);
+          } else if (Array.isArray(experience)) {
+            parsedExperience = experience;
+          } else {
+            throw new Error('Experience must be an array or JSON string');
+          }
+          console.log('Processing experience data:', parsedExperience);
+          user.experience = parsedExperience;
+        } catch (error) {
+          console.error('Error parsing experience:', error);
+          throw new Error('Invalid experience data format');
+        }
+      }
+      if (education !== undefined) {
+        try {
+          // Parse education if it's a JSON string, otherwise use as-is
+          let parsedEducation;
+          if (typeof education === 'string') {
+            parsedEducation = JSON.parse(education);
+          } else if (Array.isArray(education)) {
+            parsedEducation = education;
+          } else {
+            throw new Error('Education must be an array or JSON string');
+          }
+          console.log('Processing education data:', parsedEducation);
+          user.education = parsedEducation;
+        } catch (error) {
+          console.error('Error parsing education:', error);
+          throw new Error('Invalid education data format');
+        }
+      }
+      if (awards !== undefined) {
+        try {
+          // Parse awards if it's a JSON string, otherwise use as-is
+          let parsedAwards;
+          if (typeof awards === 'string') {
+            parsedAwards = JSON.parse(awards);
+          } else if (Array.isArray(awards)) {
+            parsedAwards = awards;
+          } else {
+            throw new Error('Awards must be an array or JSON string');
+          }
+          console.log('Processing awards data:', parsedAwards);
+          user.awards = parsedAwards;
+        } catch (error) {
+          console.error('Error parsing awards:', error);
+          throw new Error('Invalid awards data format');
+        }
+      }
+
+      console.log('Profile update - saving user with additional fields:', {
+        userId: user._id,
+        hasAbout: !!user.about,
+        skillsCount: user.skills ? user.skills.length : 0,
+        experienceCount: user.experience ? user.experience.length : 0,
+        educationCount: user.education ? user.education.length : 0,
+        awardsCount: user.awards ? user.awards.length : 0
+      });
+
+      console.log('About to save user to database...');
+      try {
+        await user.save();
+        console.log('✅ User saved successfully to database!');
+      } catch (saveError) {
+        console.error('❌ Error saving user to database:', saveError);
+        console.error('User data that failed to save:', {
+          skills: user.skills,
+          experience: user.experience,
+          education: user.education,
+          awards: user.awards
+        });
+        throw saveError;
+      }
 
       res.json({
         message: "Profile updated successfully",
@@ -622,6 +748,12 @@ router.put(
           documentLink: user.documentLink,
           profileUrl: user.profileUrl,
           major: user.major,
+          about: user.about,
+          skills: user.skills,
+          experience: user.experience,
+          education: user.education,
+          awards: user.awards,
+          openToWork: user.openToWork,
         },
       });
     } catch (err) {
@@ -1809,6 +1941,187 @@ router.get("/", async (req, res) => {
   }
 });
 
+
+
+// Get connection requests for current user (incoming)
+router.get("/connection-requests", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id)
+      .populate('connectionRequests.from', 'firstName lastName role major graduationYear universityName email');
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const pendingRequests = user.connectionRequests.filter(req => req.status === 'pending');
+    res.json(pendingRequests);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// Get current user's connections list
+// Get User Connections
+router.get("/connections", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id)
+      .populate({
+        path: 'connections',
+        select: 'firstName lastName role major graduationYear universityName email createdAt'
+      });
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Add connection timestamps and mutual connections
+    const connectionsWithDetails = await Promise.all(user.connections.map(async (conn) => {
+      const mutualCount = await getMutualConnectionsCount(decoded.id, conn._id);
+      return {
+        ...conn.toObject(),
+        mutualConnections: mutualCount,
+        connectedAt: conn.createdAt || new Date()
+      };
+    }));
+
+    res.json({
+      connections: connectionsWithDetails,
+      connectionCount: user.connections.length,
+      pendingCount: user.connectionRequests.filter(r => r.status === 'pending').length
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/connection-request/:action", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { action } = req.params; // 'accept' or 'decline'
+    const { requestId } = req.body;
+
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const request = user.connectionRequests.id(requestId);
+    if (!request) return res.status(404).json({ message: "Request not found" });
+
+    if (action === 'accept') {
+      // Add to connections
+      user.connections.push(request.from);
+      const fromUser = await User.findById(request.from);
+      fromUser.connections.push(decoded.id);
+      await fromUser.save();
+      
+      request.status = 'accepted';
+    } else if (action === 'decline') {
+      request.status = 'declined';
+    }
+
+    await user.save();
+    res.json({ message: `Connection request ${action}ed successfully` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
+// Small stats endpoint used by the dashboard (connections, pending requests, unread notifications)
+router.get("/stats", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      profileViews: user.profileViews || 0,
+      connectionCount: user.connections.length,
+      pendingCount: user.connectionRequests.filter(r => r.status === 'pending').length
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+// nav-counts: minimal counts for nav badges (pending requests & unread notifications)
+router.get("/nav-counts", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Calculate real-time counts
+    const connections = user.connections.length;
+    const unreadMessages = 0; // TODO: Implement when message system is ready
+    const unreadNotifications = user.connectionRequests.filter(r => r.status === 'pending').length;
+    const upcomingEvents = 0; // TODO: Implement when event system is ready
+    const availableJobs = 0; // TODO: Implement when job system is ready
+
+    res.json({
+      connections,
+      unreadMessages,
+      unreadNotifications,
+      upcomingEvents,
+      availableJobs
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
+// Send Connection Request
+router.post("/connect", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { targetUserId } = req.body;
+
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) return res.status(404).json({ message: "User not found" });
+
+    // Check if request already exists
+    const existingRequest = targetUser.connectionRequests.find(
+      req => req.from.toString() === decoded.id
+    );
+    if (existingRequest) {
+      return res.status(400).json({ message: "Connection request already sent" });
+    }
+
+    // Add connection request
+    targetUser.connectionRequests.push({ from: decoded.id });
+    await targetUser.save();
+
+    res.json({ message: "Connection request sent successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 // Save wallet address for authenticated user
 router.post('/set-wallet', async (req, res) => {
   try {
@@ -2108,6 +2421,129 @@ router.post('/verify-marksheet', upload.single('marksheet'), async (req, res) =>
 });
 
 
+// Get All Notifications
+router.get("/notificationnetwork", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).populate('connectionRequests.from', 'firstName lastName role major graduationYear');
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const notifications = [];
+    
+    // Connection request notifications
+    user.connectionRequests.filter(r => r.status === 'pending').forEach(req => {
+      notifications.push({
+        id: req._id,
+        type: 'connection',
+        title: 'New Connection Request',
+        message: `${req.from.firstName} ${req.from.lastName} wants to connect with you.`,
+        details: `${req.from.role === 'alumni' ? 'Alumni' : 'Student'} - ${req.from.major || req.from.role}`,
+        time: new Date(req.createdAt || Date.now()).toLocaleDateString(),
+        avatar: req.from.firstName[0] + req.from.lastName[0],
+        isRead: false,
+        requestId: req._id,
+        fromUserId: req.from._id
+      });
+    });
+
+    // Mock job notifications for demo
+    const jobNotifications = [
+      {
+        id: 'job1',
+        type: 'job',
+        title: 'New Job Opportunity',
+        message: 'Software Engineer position at Google matches your profile.',
+        time: '2 hours ago',
+        isRead: false
+      },
+      {
+        id: 'job2', 
+        type: 'job',
+        title: 'Job Application Update',
+        message: 'Your application for Product Manager at Meta is under review.',
+        time: '1 day ago',
+        isRead: true
+      }
+    ];
+
+    notifications.push(...jobNotifications);
+
+    res.json({
+      notifications,
+      unreadCount: notifications.filter(n => !n.isRead).length
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+router.get("/profile/:id", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { id } = req.params;
+    
+    const user = await User.findById(id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Increment profile views
+    await User.findByIdAndUpdate(id, { $inc: { profileViews: 1 } });
+    
+    // Get mutual connections
+    const mutualCount = await getMutualConnectionsCount(decoded.id, id);
+    
+    res.json({
+      ...user.toObject(),
+      mutualConnections: mutualCount
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/message", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { recipientId, message } = req.body;
+    
+    // For now, just return success - full messaging system would need separate Message model
+    res.json({ message: "Message sent successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Helper function to calculate mutual connections
+async function getMutualConnectionsCount(user1Id, user2Id) {
+  try {
+    const user1 = await User.findById(user1Id).select('connections');
+    const user2 = await User.findById(user2Id).select('connections');
+    
+    if (!user1 || !user2) return 0;
+    
+    const user1Connections = user1.connections.map(id => id.toString());
+    const user2Connections = user2.connections.map(id => id.toString());
+    
+    const mutuals = user1Connections.filter(id => user2Connections.includes(id));
+    return mutuals.length;
+  } catch (error) {
+    return 0;
+  }
+}
+
 // List notifications (admin only). Supports query params: page, limit, unread=true
 router.get('/notifications', async (req, res) => {
   try {
@@ -2136,6 +2572,7 @@ router.get('/notifications', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // Mark notification as read
 router.put('/notifications/:id/read', async (req, res) => {
@@ -3998,6 +4435,520 @@ router.get("/validate-document/:userId", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ==================== JOB MANAGEMENT ROUTES ====================
+
+// Helper function to check skill match percentage
+function calculateSkillMatch(jobSkills, userSkills) {
+  if (!jobSkills || jobSkills.length === 0) return 0;
+  if (!userSkills || userSkills.length === 0) return 0;
+
+  let totalMatch = 0;
+  let matchedSkills = 0;
+
+  jobSkills.forEach(jobSkill => {
+    const userSkill = userSkills.find(us => 
+      us.name.toLowerCase().includes(jobSkill.name.toLowerCase()) ||
+      jobSkill.name.toLowerCase().includes(us.name.toLowerCase())
+    );
+    
+    if (userSkill) {
+      matchedSkills++;
+      // Calculate match based on skill level
+      const levelDiff = Math.abs(userSkill.level - jobSkill.level);
+      const skillMatchScore = Math.max(0, 100 - levelDiff);
+      totalMatch += skillMatchScore;
+    }
+  });
+
+  return matchedSkills > 0 ? totalMatch / matchedSkills : 0;
+}
+
+// Helper function to send email notification
+async function sendEmailNotification(email, subject, message) {
+  // This is now handled by the notification service
+  console.log(`📧 Email notification: ${email} - ${subject}`);
+  return true;
+}
+
+// Helper function to send call notification
+async function makeVoiceCall(phoneNumber, message) {
+  // This is now handled by the notification service
+  console.log(`📞 Voice call: ${phoneNumber} - ${message}`);
+  return true;
+}
+
+// Create a new job (Alumni only)
+router.post("/jobs", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Only alumni can post jobs
+    if (user.role !== 'alumni') {
+      return res.status(403).json({ message: "Only alumni can post jobs" });
+    }
+
+    const {
+      title,
+      description,
+      company,
+      location,
+      jobType,
+      salaryRange,
+      requiredSkills,
+      requirements,
+      benefits,
+      applicationDeadline
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !company || !location || !jobType) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Create the job
+    const newJob = await Job.create({
+      title,
+      description,
+      company,
+      location,
+      jobType,
+      salaryRange,
+      requiredSkills: requiredSkills || [],
+      requirements,
+      benefits,
+      applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
+      postedBy: user._id
+    });
+
+    // Find matching students
+    if (requiredSkills && requiredSkills.length > 0) {
+      // Find students who are open to work
+      const openStudents = await User.find({
+        role: 'student',
+        openToWork: true,
+        skills: { $exists: true, $ne: [] }
+      });
+
+      const notificationPromises = [];
+      const studentsToNotify = [];
+
+      for (const student of openStudents) {
+        const matchPercentage = calculateSkillMatch(requiredSkills, student.skills);
+        
+        // Notify students with 50% or higher skill match
+        if (matchPercentage >= 50) {
+          studentsToNotify.push(student._id);
+          
+          // Create notification in database
+          notificationPromises.push(
+            Notification.create({
+              type: 'job_recommendation',
+              message: `New job opportunity: ${title} at ${company} matches your skills (${Math.round(matchPercentage)}% match)`,
+              payload: {
+                jobId: newJob._id,
+                matchPercentage: Math.round(matchPercentage),
+                studentId: student._id
+              }
+            })
+          );
+
+          // Send email and voice call notification using the service
+          notificationPromises.push(
+            sendJobRecommendationNotification(student, {
+              title,
+              company,
+              location,
+              jobType,
+              description,
+              requiredSkills,
+              salaryRange
+            }, matchPercentage)
+          );
+        }
+      }
+
+      // Update job with notified students
+      newJob.notifiedStudents = studentsToNotify;
+      await newJob.save();
+
+      // Send all notifications
+      await Promise.allSettled(notificationPromises);
+
+      // Send email notification to alumni about job posting
+      await sendJobPostingConfirmation(user, newJob, studentsToNotify.length);
+    }
+
+    // Populate the posted job for response
+    await newJob.populate('postedBy', 'firstName lastName email profileUrl');
+
+    res.status(201).json({
+      message: "Job posted successfully",
+      job: newJob
+    });
+
+  } catch (error) {
+    console.error("Error creating job:", error);
+    res.status(500).json({ 
+      message: "Failed to create job",
+      error: error.message 
+    });
+  }
+});
+
+// Get all jobs with pagination and filters
+router.get("/jobs", async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      location,
+      jobType,
+      company,
+      skills
+    } = req.query;
+
+    const skip = (page - 1) * limit;
+    let query = { isActive: true };
+
+    // Build search query
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { company: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (location) {
+      query.location = { $regex: location, $options: 'i' };
+    }
+
+    if (jobType) {
+      query.jobType = jobType;
+    }
+
+    if (company) {
+      query.company = { $regex: company, $options: 'i' };
+    }
+
+    if (skills) {
+      const skillArray = skills.split(',').map(s => s.trim());
+      query['requiredSkills.name'] = { $in: skillArray.map(s => new RegExp(s, 'i')) };
+    }
+
+    const jobs = await Job.find(query)
+      .populate('postedBy', 'firstName lastName email profileUrl')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(skip);
+
+    const totalJobs = await Job.countDocuments(query);
+
+    res.json({
+      jobs,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(totalJobs / limit),
+      totalJobs,
+      hasNextPage: skip + jobs.length < totalJobs,
+      hasPrevPage: page > 1
+    });
+
+  } catch (error) {
+    console.error("Error fetching jobs:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch jobs",
+      error: error.message 
+    });
+  }
+});
+
+// Get single job by ID
+router.get("/jobs/:id", async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id)
+      .populate('postedBy', 'firstName lastName email profileUrl universityName')
+      .populate('applicants.user', 'firstName lastName email profileUrl skills');
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    res.json(job);
+
+  } catch (error) {
+    console.error("Error fetching job:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch job",
+      error: error.message 
+    });
+  }
+});
+
+// Apply for a job (Students only)
+router.post("/jobs/:id/apply", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Only students can apply for jobs
+    if (user.role !== 'student') {
+      return res.status(403).json({ message: "Only students can apply for jobs" });
+    }
+
+    const job = await Job.findById(req.params.id).populate('postedBy', 'firstName lastName email');
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    if (!job.isActive) {
+      return res.status(400).json({ message: "This job is no longer active" });
+    }
+
+    // Check if already applied
+    const hasApplied = job.applicants.some(app => app.user.toString() === user._id.toString());
+    if (hasApplied) {
+      return res.status(400).json({ message: "You have already applied for this job" });
+    }
+
+    // Add applicant
+    job.applicants.push({
+      user: user._id,
+      appliedAt: new Date(),
+      status: 'applied'
+    });
+
+    await job.save();
+
+    // Send notification to job poster (alumni)
+    await Notification.create({
+      type: 'job_application',
+      message: `${user.firstName} ${user.lastName} applied for your job: ${job.title}`,
+      payload: {
+        jobId: job._id,
+        applicantId: user._id,
+        applicantName: `${user.firstName} ${user.lastName}`,
+        applicantEmail: user.email
+      }
+    });
+
+    // Send email to alumni using notification service
+    await sendJobApplicationNotification(job.postedBy, user, job);
+
+    res.json({
+      message: "Application submitted successfully"
+    });
+
+  } catch (error) {
+    console.error("Error applying for job:", error);
+    res.status(500).json({ 
+      message: "Failed to apply for job",
+      error: error.message 
+    });
+  }
+});
+
+// Get jobs posted by current user (Alumni only)
+router.get("/my-jobs", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role !== 'alumni') {
+      return res.status(403).json({ message: "Only alumni can view posted jobs" });
+    }
+
+    const jobs = await Job.find({ postedBy: user._id })
+      .populate('applicants.user', 'firstName lastName email profileUrl skills')
+      .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+
+  } catch (error) {
+    console.error("Error fetching user jobs:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch your jobs",
+      error: error.message 
+    });
+  }
+});
+
+// Update openToWork status
+router.put("/open-to-work", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const { openToWork } = req.body;
+
+    if (typeof openToWork !== 'boolean') {
+      return res.status(400).json({ message: "openToWork must be a boolean value" });
+    }
+
+    user.openToWork = openToWork;
+    await user.save();
+
+    res.json({
+      message: `Open to work status ${openToWork ? 'enabled' : 'disabled'}`,
+      openToWork: user.openToWork
+    });
+
+  } catch (error) {
+    console.error("Error updating open to work status:", error);
+    res.status(500).json({ 
+      message: "Failed to update status",
+      error: error.message 
+    });
+  }
+});
+
+// Update job status (Alumni only - for their own jobs)
+router.put("/jobs/:id/status", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const { isActive } = req.body;
+
+    const job = await Job.findOne({ 
+      _id: req.params.id, 
+      postedBy: user._id 
+    });
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found or you don't have permission to edit it" });
+    }
+
+    job.isActive = isActive;
+    await job.save();
+
+    res.json({
+      message: `Job ${isActive ? 'activated' : 'deactivated'} successfully`,
+      job
+    });
+
+  } catch (error) {
+    console.error("Error updating job status:", error);
+    res.status(500).json({ 
+      message: "Failed to update job status",
+      error: error.message 
+    });
+  }
+});
+
+// Delete job (Alumni only - for their own jobs)
+router.delete("/jobs/:id", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Only alumni can delete jobs
+    if (user.role !== 'alumni') {
+      return res.status(403).json({ message: "Only alumni can delete jobs" });
+    }
+
+    const job = await Job.findOne({ 
+      _id: req.params.id, 
+      postedBy: user._id 
+    });
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found or you don't have permission to delete it" });
+    }
+
+    // Check if there are any applications
+    const hasApplications = job.applicants && job.applicants.length > 0;
+    
+    if (hasApplications) {
+      // If there are applications, ask for confirmation or just deactivate instead
+      const { forceDelete } = req.body;
+      
+      if (!forceDelete) {
+        return res.status(400).json({ 
+          message: "This job has applications. Are you sure you want to delete it?",
+          applicationsCount: job.applicants.length,
+          requiresConfirmation: true
+        });
+      }
+    }
+
+    // Delete the job
+    await Job.findByIdAndDelete(req.params.id);
+
+    // Also remove related notifications
+    await Notification.deleteMany({
+      'payload.jobId': req.params.id
+    });
+
+    res.json({
+      message: "Job deleted successfully"
+    });
+
+  } catch (error) {
+    console.error("Error deleting job:", error);
+    res.status(500).json({ 
+      message: "Failed to delete job",
+      error: error.message 
+    });
   }
 });
 

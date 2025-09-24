@@ -24,9 +24,49 @@ import {
   Eye,
 } from "lucide-react";
 
+interface Skill {
+  id?: number;
+  name: string;
+  level: number;
+}
+
+interface Experience {
+  id?: number;
+  title: string;
+  company: string;
+  location?: string;
+  startDate: string;
+  endDate?: string;
+  current?: boolean;
+  description: string;
+  skills?: string[];
+  period?: string; // for backward compatibility
+}
+
+interface Education {
+  id?: number;
+  institution: string;
+  degree: string;
+  field?: string;
+  startDate: string;
+  endDate?: string;
+  grade?: string;
+  description?: string;
+}
+
+interface Award {
+  id?: number;
+  title: string;
+  organization?: string;
+  issuer?: string;
+  date: string;
+  description?: string;
+}
+
 export default function ProfilePage() {
 
-  const {user} = useAuth();
+  const authContext = useAuth() as any;
+  const user = authContext?.user;
   const router = useRouter();
 
   // Helper function to get file info from URL
@@ -112,7 +152,7 @@ export default function ProfilePage() {
     }
   };
 
-  const skills = [
+  const skills: Skill[] = user?.skills || [
     { name: "React", level: 95 },
     { name: "TypeScript", level: 90 },
     { name: "Node.js", level: 85 },
@@ -121,7 +161,7 @@ export default function ProfilePage() {
     { name: "Team Leadership", level: 88 },
   ];
 
-  const experience = [
+  const experience: Experience[] = user?.experience || [
     {
       title: "Senior Software Engineer",
       company: "Google",
@@ -137,10 +177,13 @@ export default function ProfilePage() {
       period: "Jun 2020 - Dec 2022",
       location: "Menlo Park, CA",
       description:
-        "Developed and maintained React components for Facebook&apos;s main platform.",
+        "Developed and maintained React components for Facebook's main platform.",
       skills: ["React", "JavaScript", "GraphQL"],
     },
   ];
+
+  const education: Education[] = user?.education || [];
+  const awards: Award[] = user?.awards || [];
 
   return (
     <div className="p-6 space-y-6">
@@ -214,10 +257,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-4">
-                Passionate software engineer with 4+ years of experience
-                building scalable web applications. Alumni of Computer Science
-                Department, Class of 2020. Currently leading the frontend team
-                for Google&apos;s Cloud Infrastructure products.
+                {user?.about || "Passionate software engineer with 4+ years of experience building scalable web applications. Alumni of Computer Science Department, Class of 2020. Currently leading the frontend team for Google's Cloud Infrastructure products."}
               </p>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
@@ -240,32 +280,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Profile Analytics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Analytics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold">247</div>
-                  <div className="text-sm text-gray-500">Profile Views</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">156</div>
-                  <div className="text-sm text-gray-500">Connections</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">23</div>
-                  <div className="text-sm text-gray-500">Posts</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">89</div>
-                  <div className="text-sm text-gray-500">Endorsements</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
 
           {/* Skills & Endorsements */}
           <Card>
@@ -373,13 +388,14 @@ export default function ProfilePage() {
                           <h4 className="font-semibold text-lg">{exp.title}</h4>
                           <p className="text-gray-600 mb-1">{exp.company}</p>
                           <p className="text-sm text-gray-500 mb-3">
-                            {exp.period} • {exp.location}
+                            {exp.period || `${exp.startDate} - ${exp.current ? 'Present' : exp.endDate}`}
+                            {exp.location && ` • ${exp.location}`}
                           </p>
                           <p className="text-sm text-gray-700 mb-4">
                             {exp.description}
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {exp.skills.map((skill, skillIndex) => (
+                            {exp.skills?.map((skill, skillIndex) => (
                               <Badge
                                 key={skillIndex}
                                 variant="secondary"
@@ -398,18 +414,47 @@ export default function ProfilePage() {
             </TabsContent>
 
             <TabsContent value="education" className="space-y-4">
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No Education Added
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Add your educational background
-                  </p>
-                  <Button>Add Education</Button>
-                </CardContent>
-              </Card>
+              {education.length > 0 ? (
+                <div className="grid gap-4">
+                  {education.map((edu, index) => (
+                    <Card key={edu.id || index}>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold">{edu.degree}</h3>
+                            <p className="text-gray-600 mb-1">{edu.institution}</p>
+                            {edu.field && (
+                              <p className="text-sm text-gray-500 mb-1">Field: {edu.field}</p>
+                            )}
+                            <p className="text-sm text-gray-500 mb-3">
+                              {edu.startDate} - {edu.endDate || 'Present'}
+                            </p>
+                            {edu.grade && (
+                              <p className="text-sm text-blue-600 mb-3">Grade: {edu.grade}</p>
+                            )}
+                            {edu.description && (
+                              <p className="text-sm text-gray-700">{edu.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      No Education Added
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Add your educational background
+                    </p>
+                    <Button onClick={() => router.push("/dashboard/profile/edit")}>Add Education</Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="documents" className="space-y-4">
@@ -499,18 +544,40 @@ export default function ProfilePage() {
             </TabsContent>
 
             <TabsContent value="awards" className="space-y-4">
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No Awards Added
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Showcase your achievements and awards
-                  </p>
-                  <Button>Add Award</Button>
-                </CardContent>
-              </Card>
+              {awards.length > 0 ? (
+                <div className="grid gap-4">
+                  {awards.map((award, index) => (
+                    <Card key={award.id || index}>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold">{award.title}</h3>
+                            <p className="text-gray-600 mb-1">{award.organization || award.issuer}</p>
+                            <p className="text-sm text-gray-500 mb-3">{award.date}</p>
+                            {award.description && (
+                              <p className="text-sm text-gray-700">{award.description}</p>
+                            )}
+                          </div>
+                          <Star className="h-6 w-6 text-yellow-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      No Awards Added
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Showcase your achievements and awards
+                    </p>
+                    <Button onClick={() => router.push("/dashboard/profile/edit")}>Add Award</Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </div>

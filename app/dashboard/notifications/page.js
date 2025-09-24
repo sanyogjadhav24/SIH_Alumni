@@ -161,7 +161,7 @@ export default function NotificationsPage() {
   const fetchAllNotifications = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:4000/api/users/notifications`, {
+      const res = await fetch(`http://localhost:4000/api/users/notificationnetwork`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
