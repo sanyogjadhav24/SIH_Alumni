@@ -25,6 +25,7 @@ import {
   Menu,
   Search,
   Settings,
+  FileText,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
@@ -34,6 +35,7 @@ import AvatarDropdown from "@/components/ui/AvtarDropDown";
 
 const getNavigation = (counts: any) => [
   { name: "Feed", href: "/dashboard", icon: Home },
+  { name: "My Posts", href: "/dashboard/profile/my-posts", icon: FileText },
   { name: "My Network", href: "/dashboard/network", icon: Users, badge: counts.connections?.toString() },
   {
     name: "Messages",
