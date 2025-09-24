@@ -39,3 +39,4 @@ app.use("/api/posts", postRoutes);
 // Server start
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// dothis is the functionality implemented in the backend server.js file
