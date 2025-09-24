@@ -11,20 +11,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/layout.js"
     ],
-    "/dashboard/profile/[id]/page": [
+    "/dashboard/events/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/profile/[id]/page.js"
+      "static/chunks/app/dashboard/events/page.js"
     ],
-    "/dashboard/network/page": [
+    "/auth/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/network/page.js"
+      "static/chunks/app/auth/login/page.js"
     ],
-    "/api/posts/user/[userId]/summaries/route": [
+    "/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/posts/user/[userId]/summaries/route.js"
+      "static/chunks/app/dashboard/page.js"
     ],
     "/dashboard/profile/my-posts/page": [
       "static/chunks/webpack.js",

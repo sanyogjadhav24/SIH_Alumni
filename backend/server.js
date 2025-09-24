@@ -3,11 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
-<<<<<<< HEAD
 const eventRoutes = require("./routes/eventRoutes");
-=======
 const postRoutes = require("./routes/postRoutes");
->>>>>>> 9f48cd27435d62d8211e7091e970fb518020bc6a
 
 
 
@@ -37,12 +34,9 @@ connectDB();
 
 // Routes
 app.use("/api/users", userRoutes);
-<<<<<<< HEAD
 app.use("/api/events", eventRoutes);
-=======
 app.use("/api/posts", postRoutes);
 
->>>>>>> 9f48cd27435d62d8211e7091e970fb518020bc6a
 
 // Server start
 const PORT = process.env.PORT || 4000;
