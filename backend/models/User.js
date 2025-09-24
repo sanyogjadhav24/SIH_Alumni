@@ -67,7 +67,13 @@ const userSchema = new mongoose.Schema(
       status: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
       createdAt: { type: Date, default: Date.now }
     }],
-    connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    registeredEvents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Event",
+      },
+    ],
   },
   { timestamps: true }
 );

@@ -5,6 +5,10 @@ const cors = require("cors");
 const path = require("path");
 const userRoutes = require("./routes/userRoutes");
 const { router: jobRoutes } = require("./routes/jobRoutes");
+const eventRoutes = require("./routes/eventRoutes");
+const postRoutes = require("./routes/postRoutes");
+
+
 
 const app = express();
 
@@ -42,6 +46,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/events", eventRoutes);
 app.use("/api/posts", postRoutes);
 
 
