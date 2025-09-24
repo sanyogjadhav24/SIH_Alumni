@@ -2,16 +2,63 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, MessageCircle, UserPlus, Mail, Phone, GraduationCap, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, MessageCircle, UserPlus, Mail, Phone, GraduationCap, Calendar, Clock, Sparkles } from "lucide-react";
+import PostSummaryTimeline from "@/components/PostSummaryTimeline";
+
+interface Profile {
+  firstName: string;
+  lastName: string;
+  role: string;
+  major?: string;
+  universityName: string;
+  graduationYear: number;
+  profileViews?: number;
+  connections?: any[];
+  mutualConnections?: number;
+}
+
+interface TimelineStory {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  type: string;
+}
 
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Mock timeline stories for the user
+  const userTimelineStories = [
+    {
+      id: 1,
+      title: "Joined as Software Engineer at Microsoft",
+      description: "Started career in cloud computing division",
+      date: "2023-06-15",
+      type: "career"
+    },
+    {
+      id: 2,
+      title: "Published research paper on AI Ethics",
+      description: "Co-authored paper published in IEEE Computer Society",
+      date: "2023-09-22",
+      type: "research"
+    },
+    {
+      id: 3,
+      title: "Promoted to Senior Software Engineer",
+      description: "Recognition for outstanding performance in Azure team",
+      date: "2024-03-10",
+      type: "career"
+    }
+  ];
 
   const fetchProfile = async () => {
     try {
@@ -118,6 +165,26 @@ export default function ProfilePage() {
               <div className="text-sm text-gray-500">Mutual</div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* AI-Powered Post Timeline */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                AI Story Timeline
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                AI-generated summaries of user posts and activities
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <PostSummaryTimeline userId={params.id as string} />
         </CardContent>
       </Card>
     </div>

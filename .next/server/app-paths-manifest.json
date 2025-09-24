@@ -1,0 +1,5 @@
+{
+  "/api/posts/user/[userId]/summaries/route": "app/api/posts/user/[userId]/summaries/route.js",
+  "/dashboard/profile/[id]/page": "app/dashboard/profile/[id]/page.js",
+  "/dashboard/profile/my-posts/page": "app/dashboard/profile/my-posts/page.js"
+}

@@ -1,0 +1,50 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Runtime files
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Debug and testing
+.nyc_output
+coverage/
+*.lcov
+
+# Package manager lock files (keep one)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
