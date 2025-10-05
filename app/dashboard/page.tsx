@@ -128,12 +128,12 @@ export default function DashboardPage() {
   }, [searchParams, router])
 
   useEffect(() => {
+    // Only redirect to login if we have determined the user is unauthenticated.
+    // IMPORTANT: do NOT auto-redirect admins anywhere. Admins should stay on
+    // the Feed (/dashboard) unless they explicitly navigate to the admin UI.
     if (!loading && !user) {
       router.push('/auth/login')
-    }
-    // If logged in and admin, go to admin users dashboard
-    if (!loading && user && user.role === 'admin') {
-      router.push('/dashboard/admin-users');
+      return
     }
   }, [loading, user, router])
 
@@ -191,7 +191,7 @@ export default function DashboardPage() {
   if (loading || !user) return <div className="p-6 text-center">Loading...</div>
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Welcome Banner */}
       <Card className="bg-gradient-to-r from-primary to-primary/90 text-white border-0">
         <CardContent className="p-8">
@@ -208,16 +208,35 @@ export default function DashboardPage() {
           </Button>
           <div className="mt-4 space-x-2">
             {user.role === 'admin' ? (
-              <Button onClick={() => router.push('/dashboard/admin-users')} className="bg-indigo-600 text-white">
-                Admin Dashboard
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => router.push('/dashboard/admin-users')} className="bg-indigo-600 text-white">
+                  Admin Dashboard
+                </Button>
+                <Button onClick={() => router.push('/dashboard/admin-campaigns')} variant="outline">
+                  Admin Campaigns
+                </Button>
+              </div>
               ) : (
               <>
                 {/* Wallet connect; show verification UI only for alumni */}
                 <div className="flex items-center gap-3">
                   <button onClick={handleConnectWallet} className="px-4 py-2 bg-green-600 text-white rounded">{walletAddr ? `Connected: ${walletAddr}` : 'Connect Wallet'}</button>
                   {user.role === 'alumni' && (
-                    <span className="ml-3">{user.isVerified ? <span className="inline-block bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Verified Alumni</span> : <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending Verification</span>}</span>
+                    <>
+                      <span className="ml-3">{user.isVerified ? <span className="inline-block bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Verified Alumni</span> : <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending Verification</span>}</span>
+                      <Button onClick={() => router.push('/dashboard/college-fund')} variant="outline" className="ml-3">
+                        College Fund
+                      </Button>
+                    </>
+                  )}
+                  {user.role === 'student' && (
+                    <Button 
+                      onClick={() => window.open('https://vitexpshare.tech', '_blank')} 
+                      variant="outline" 
+                      className="ml-3 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                    >
+                      Alumni Interview Experience
+                    </Button>
                   )}
                 </div>
 
@@ -310,5 +329,6 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+
   )
 }
