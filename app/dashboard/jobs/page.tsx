@@ -343,13 +343,46 @@ export default function JobsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Post a New Job</h2>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowCreateForm(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // fill demo data
+                    const deadline = new Date();
+                    deadline.setDate(deadline.getDate() + 30);
+                    setFormData({
+                      title: "Frontend Engineer (Alumni Referral)",
+                      description:
+                        "Looking for an experienced frontend engineer to build responsive web applications. Familiarity with React and modern tooling required.",
+                      company: "DemoTech Solutions",
+                      location: "Pune, India",
+                      jobType: "Full-time",
+                      salaryMin: "50000",
+                      salaryMax: "120000",
+                      requiredSkills: [
+                        { name: "React", level: 80 },
+                        { name: "Node.js", level: 75 },
+                        { name: "Python", level: 85 }
+                      ],
+                      requirements: "3+ years experience in frontend development. Strong communication skills.",
+                      benefits: "Health insurance, flexible hours, remote options.",
+                      applicationDeadline: deadline.toISOString().slice(0, 10)
+                    });
+                    setNewSkill({ name: "", level: 50 });
+                  }}
+                >
+                  Fill Demo Data
+                </Button>
+
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowCreateForm(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
             <form onSubmit={handleCreateJob} className="space-y-4">

@@ -70,7 +70,7 @@ export default function LandingPage() {
       description: "Secure, transparent payment system for mentorship, events, and premium services using cryptocurrency",
       gradient: "from-teal-500 to-blue-500",
       animation: "animate-icon-float",
-      tags: ["Crypto", "Transparent", "Fast"]
+      tags: [ "Transparent", "Fast"]
     },
     {
       icon: MessageCircle,
@@ -102,7 +102,7 @@ export default function LandingPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       goToNext();
-    }, 5000);
+    },7000);
 
     return () => clearInterval(interval);
   }, [currentFeature]);
